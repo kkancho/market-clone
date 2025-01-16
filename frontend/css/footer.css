@@ -34,7 +34,10 @@ footer {
   0% {
     transform: translateY(0px);
   }
-  50% {
+  30% {
+    transform: translateY(-10px);
+  }
+  70% {
     transform: translateY(-10px);
   }
   100% {
