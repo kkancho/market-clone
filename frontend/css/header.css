@@ -1,5 +1,14 @@
 /* 헤더바 */
 header {
+  padding: 10px;
+  display: flex;
+  width: 98vw;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 헤더바 */
+header {
   margin-top: 10px;
   border-bottom: 1px solid #ededef;
   padding-bottom: 10px;
