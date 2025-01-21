@@ -22,19 +22,10 @@ const renderData = (data) => {
     imgDiv.className = "item-list__img";
 
     const img = document.createElement("img");
-    try {
-      const res = await fetch(`/images/${obj.id}`);
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        img.src = url;
-      } else {
-        console.error("Failed to load image for item ID:", obj.id);
-        img.alt = "Image not found";
-      }
-    } catch (e) {
-      console.error("Error fetching image:", e);
-    }
+    const res = await fetch(`/images${obj.id}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    img.src = url;
 
     const InfoDiv = document.createElement("div");
     InfoDiv.className = "items-list__info";
