@@ -21,12 +21,12 @@ async def create_item(
     place: Annotated[str, Form()],
     insertAt: Annotated[int, Form()]
 ):
+    
     image_bytes = await image.read()
-
     cur.execute(f"""
                 INSERT INTO 
                 items(title, image, price, description, place, insertAt)
-                VALUES ('{title}','{image_bytes.hex}',{price},'{description}','{place}',{insertAt})
+                VALUES ('{title}','{image_bytes.hex()}',{price},'{description}','{place}',{insertAt})
                 """)
 
     con.commit()
