@@ -58,25 +58,16 @@ async def create_item(
 
 @app.get('/items')
 async def get_items():
-    try:
-        con = get_db_connection()
-        cur = con.cursor()
-        rows = cur.execute("SELECT \* FROM items").fetchall()
-        return JSONResponse(content={"items": [dict(row) for row in rows]}
-    except Exception as e:
-        print(f"Error: {str(e)}"))
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Internal server error"}
-        )
-        cur.row_factory = sqlite3.Row
-        
+    con = get_db_connection()
+    cur.row_factory = sqlite3.Row
+    cur = con.cursor()
     
-    rows = cur.execute("SELECT * FROM items;").fetchall()
+    rows = cur.execute("SELECT \* FROM items;").fetchall()
     con.close()
     
     data = [dict(row) for row in rows]
     return JSONResponse(content=jsonable_encoder(data))
+
 
 @app.get('/images/{item_id}')
 async def get_image(item_id: int):
