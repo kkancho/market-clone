@@ -6,11 +6,14 @@ from typing import Annotated
 import sqlite3
 
 # Database connection
-con = sqlite3.connect('db.db', check_same_thread=False)
-cur = con.cursor()
+# con = sqlite3.connect("./market-clone/db.db")
+# cur = con.cursor()
 
 # Initialize FastAPI
 app = FastAPI()
+
+def get_db_connection():
+    return sqlite3.connect("./market-clone/db.db")
 
 @app.post('/items')
 async def create_item(
@@ -23,33 +26,45 @@ async def create_item(
 ):
     
     image_bytes = await image.read()
-    cur.execute(f"""
-                INSERT INTO 
-                items(title, image, price, description, place, insertAt)
-                VALUES ('{title}','{image_bytes.hex()}',{price},'{description}','{place}',{insertAt})
-                """)
+    
+    con = get_db_connection()
+    cur = con.cursor()
+    
+    cur.execute("""
+        INSERT INTO items(title, image, price, description, place, insertAt)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (title, image_bytes.hex(), price, description, place, insertAt))
 
     con.commit()
-    return '200'
+    con.close()
+    
+    return JSONResponse(content={"status": "success"})
 
 @app.get('/items')
 async def get_items():
+    con = get_db_connection()
     cur.row_factory = sqlite3.Row
     cur = con.cursor()
-    rows = cur.execute(f"""
-                       SELECT * FROM items;
-                       """).fetchall()
-
-    return JSONResponse(jsonable_encoder(dict(row) for row in rows))
+    
+    rows = cur.execute("SELECT * FROM items;").fetchall()
+    con.close()
+    
+    data = [dict(row) for row in rows]
+    return JSONResponse(content=jsonable_encoder(data))
 
 @app.get('/images/{item_id}')
-async def get_image(item_id):
+async def get_image(item_id: int):
+    con = get_db_connection()
     cur = con.cursor()
-    image_bytes = cur.execute(f"""
-                              SELECT image from items WHERE id={item_id}
-                              """).fetchone()[0]
     
-    return Response(content=bytes.fromhex(image_bytes))
+    image_bytes = cur.execute("""
+        SELECT image from items WHERE id = ?
+    """, (item_id,)).fetchone()
+    con.close()
+        
+    if image_bytes:
+        return Response(content=bytes.fromhex(image_bytes[0]))
+    return JSONResponse(content={"error": "Image not found"}, status_code=404)
 
 # Mount static files for frontend
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
