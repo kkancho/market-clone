@@ -5,6 +5,22 @@ from fastapi.staticfiles import StaticFiles
 from typing import Annotated
 import sqlite3
 
+con = sqlite3.connect('db.db', check_same_thread=False)
+cur = con.cursor()
+
+cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS items (
+	            id INTEGER PRIMARY KEY,
+	            title TEXT NOT NULL,
+	            image BLOB,
+	            price INTEGER NOT NULL,
+	            description TEXT,
+	            place TEXT NOT NULL,
+	            insertAt INTEGER NOT NULL
+            ); 
+
+            """)
+
 # Database connection
 # con = sqlite3.connect("./market-clone/db.db")
 # cur = con.cursor()
