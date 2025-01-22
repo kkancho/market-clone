@@ -22,7 +22,7 @@ const renderData = (data) => {
     imgDiv.className = "item-list__img";
 
     const img = document.createElement("img");
-    const res = await fetch(`/images${obj.id}`);
+    const res = await fetch(`/images/${obj.id}`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     img.src = url;
@@ -53,7 +53,7 @@ const renderData = (data) => {
 };
 
 const fetchList = async () => {
-  const res = await fetch("/items/");
+  const res = await fetch("/items");
   const data = await res.json();
   renderData(data);
 };
