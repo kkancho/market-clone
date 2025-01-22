@@ -83,5 +83,10 @@ async def get_image(item_id: int):
         return Response(content=bytes.fromhex(image_bytes[0]), media_type='image/*')
     return JSONResponse(content={"error": "Image not found"}, status_code=404)
 
+@app.post('/signup')
+def signup(id:Annotated[str,Form()],password:Annotated[str,Form()]):
+    print(id, password)
+    return '200'
+
 # Mount static files for frontend
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
