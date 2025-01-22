@@ -53,9 +53,16 @@ const renderData = (data) => {
 };
 
 const fetchList = async () => {
-  const res = await fetch("/items");
-  const data = await res.json();
-  renderData(data);
+  try {
+    const res = await fetch("/items");
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    const data = await res.json();
+    renderData(data);
+  } catch (error) {
+    console.error("데이터를 가져오는 중 오류 발생:", error);
+  }
 };
 
 fetchList();
