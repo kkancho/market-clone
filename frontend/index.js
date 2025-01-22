@@ -53,7 +53,7 @@ const renderData = (data) => {
 };
 
 const fetchList = async () => {
-  const res = await fetch("/items");
+  const res = await fetch("/items/");
   const data = await res.json();
   renderData(data);
 };
