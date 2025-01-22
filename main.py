@@ -74,12 +74,12 @@ async def get_image(item_id: int):
     cur = con.cursor()
     
     image_bytes = cur.execute("""
-        SELECT image from items WHERE id = ?
-    """, (item_id,)).fetchone()
+                            SELECT image from items WHERE id = ?
+                            """, (item_id,)).fetchone()
     con.close()
         
     if image_bytes:
-        return Response(content=bytes.fromhex(image_bytes[0]))
+        return Response(content=bytes.fromhex(image_bytes[0]), media_type='image/*')
     return JSONResponse(content={"error": "Image not found"}, status_code=404)
 
 # Mount static files for frontend
