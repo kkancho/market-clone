@@ -29,7 +29,7 @@ cur.execute(f"""
 app = FastAPI()
 
 def get_db_connection():
-    return sqlite3.connect("./market-clone/db.db")
+    return sqlite3.connect('db.db', check_same_thread=False)
 
 @app.post('/items')
 async def create_item(
@@ -40,33 +40,48 @@ async def create_item(
     place: Annotated[str, Form()],
     insertAt: Annotated[int, Form()]
 ):
-    
-    image_bytes = await image.read()
-    
-    con = get_db_connection()
-    cur = con.cursor()
-    
-    cur.execute("""
-        INSERT INTO items(title, image, price, description, place, insertAt)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (title, image_bytes.hex(), price, description, place, insertAt))
+    try:
+        image_bytes = await image.read()
+        
+        con = get_db_connection()
+        cur = con.cursor()
+        
+        cur.execute("""
+            INSERT INTO items(title, image, price, description, place, insertAt)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (title, image_bytes.hex(), price, description, place, insertAt))
 
-    con.commit()
-    con.close()
-    
-    return JSONResponse(content={"status": "success"})
+        con.commit()
+        con.close()
+        
+        return JSONResponse(content={"status": "success"})
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return JSONResponse(
+            content={"status": "error", "message": str(e)},
+            status_code=500
+        )
 
 @app.get('/items')
 async def get_items():
-    con = get_db_connection()
-    cur.row_factory = sqlite3.Row
-    cur = con.cursor()
-    
-    rows = cur.execute("SELECT \* FROM items;").fetchall()
-    con.close()
-    
-    data = [dict(row) for row in rows]
-    return JSONResponse(content=jsonable_encoder(data))
+    try:
+        con = get_db_connection()
+        con.row_factory = sqlite3.Row
+        cur = con.cursor()
+        
+        rows = cur.execute("SELECT * FROM items;").fetchall()
+        data = [dict(row) for row in rows]
+        
+        cur.close()
+        con.close()
+        
+        return JSONResponse(content=jsonable_encoder(data))
+    except Exception as e:
+        print(f"데이터 조회 에러: {str(e)}")
+        return JSONResponse(
+            content={"status": "error", "message": str(e)},
+            status_code=500
+        )
 
 
 @app.get('/images/{item_id}')

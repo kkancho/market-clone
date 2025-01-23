@@ -10,7 +10,7 @@ const handleSubmitForm = async (event) => {
       body,
     });
     const data = await res.json();
-    if (data === "200") window.location.pathname = "/";
+    if (data.status === "success") window.location.pathname = "/";
   } catch (e) {
     console.error(e);
   }
