@@ -99,7 +99,13 @@ async def get_image(item_id: int):
     return JSONResponse(content={"error": "Image not found"}, status_code=404)
 
 @app.post('/signup')
-def signup(id:Annotated[str,Form()],password:Annotated[str,Form()]):
+def signup(id:Annotated[str,Form()],
+           password:Annotated[str,Form()],
+           name:Annotated[str,Form()],
+           email:Annotated[str,Form()]):
+    cur.execute(f"""
+                
+                """)
     print(id, password)
     return '200'
 
