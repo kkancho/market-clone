@@ -104,9 +104,10 @@ def signup(id:Annotated[str,Form()],
            name:Annotated[str,Form()],
            email:Annotated[str,Form()]):
     cur.execute(f"""
-                
+                INSERT INTO users(id,name,email,password)
+                VALUES ('{id}','{name}','{email}','{password}')
                 """)
-    print(id, password)
+    con.commit()
     return '200'
 
 # Mount static files for frontend
