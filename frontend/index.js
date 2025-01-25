@@ -16,10 +16,10 @@ const renderData = (data) => {
 
   data.reverse().forEach(async (obj) => {
     const div = document.createElement("div");
-    div.className = "item-list";
+    div.className = "items-list";
 
     const imgDiv = document.createElement("div");
-    imgDiv.className = "item-list__img";
+    imgDiv.className = "items-list__img";
 
     const img = document.createElement("img");
     const res = await fetch(`/images/${obj.id}`);
@@ -31,15 +31,15 @@ const renderData = (data) => {
     InfoDiv.className = "items-list__info";
 
     const InfoTitleDiv = document.createElement("div");
-    InfoTitleDiv.className = "item-list__info-title";
+    InfoTitleDiv.className = "items-list__info-title";
     InfoTitleDiv.innerText = obj.title;
 
     const InfoMetaDiv = document.createElement("div");
-    InfoMetaDiv.className = "item-list__info-meta";
+    InfoMetaDiv.className = "items-list__info-meta";
     InfoMetaDiv.innerText = obj.place + " " + calcTime(obj.insertAt);
 
     const InfoPriceDiv = document.createElement("div");
-    InfoPriceDiv.className = "item-list__info-price";
+    InfoPriceDiv.className = "items-list__info-price";
     InfoPriceDiv.innerText = obj.price;
 
     imgDiv.appendChild(img);
