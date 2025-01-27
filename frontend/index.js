@@ -1,3 +1,4 @@
+// 시간을 계산하는 함수
 const calcTime = (timestamp) => {
   const curTime = new Date().getTime() - 9 * 60 * 60 * 1000;
   const time = new Date(curTime - timestamp);
@@ -11,6 +12,7 @@ const calcTime = (timestamp) => {
   else return "방금 전";
 };
 
+// 데이터를 렌더링하는 함수
 const renderData = (data) => {
   const main = document.querySelector("main");
 
@@ -52,17 +54,36 @@ const renderData = (data) => {
   });
 };
 
+// 상품 목록 가져오기
 const fetchList = async () => {
+  const accessToken = window.localStorage.getItem("token");
+  if (!accessToken) {
+    alert("로그인이 필요합니다.");
+    window.location.pathname = "/login.html";
+    return;
+  }
+
   try {
-    const res = await fetch("/items");
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+    const res = await fetch("/items", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (res.status === 401) {
+      alert("로그인이 필요합니다.");
+      window.location.pathname = "/login.html";
+      return;
     }
+
     const data = await res.json();
-    renderData(data);
+    console.log("Fetched items:", data);
+    // renderData(data);
   } catch (error) {
-    console.error("데이터를 가져오는 중 오류 발생:", error);
+    console.error("API 요청 중 오류 발생:", error);
   }
 };
 
+// 페이지 로드 시 실행
 fetchList();

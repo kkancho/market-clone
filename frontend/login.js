@@ -13,15 +13,13 @@ const handleSubmit = async (event) => {
     method: "POST",
     body: formData,
   });
-  const data = await res.json();
 
-  console.log("액세스토큰!!", data);
-  if (res.status === 200) {
-    alert("로그인에 성공했습니다!!");
-    window.location.pathname = "/";
-  } else if (res.status === 401) {
-    alert("id 혹은 password가 틀렸습니다.");
-  }
+  const data = await res.json();
+  const accessToken = data.access_token;
+  window.localStorage.setItem("token", accessToken);
+  alert("로그인되었습니다!!");
+
+  window.location.pathname = "/";
 };
 
 form.addEventListener("submit", handleSubmit);

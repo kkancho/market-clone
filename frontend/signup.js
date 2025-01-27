@@ -5,9 +5,7 @@ const checkPassword = () => {
   const password1 = formData.get("password");
   const password2 = formData.get("password2");
 
-  if (password1 === password2) {
-    return true;
-  } else return false;
+  return password1 === password2;
 };
 
 const handleSubmit = async (event) => {
@@ -28,12 +26,12 @@ const handleSubmit = async (event) => {
         body: formData,
       });
 
-      // 응답 데이터 확인
+      const data = await res.json(); // JSON 응답 처리
+
       if (res.ok) {
-        alert("회원 가입에 성공했습니다.");
+        alert(data.message || "회원 가입에 성공했습니다.");
         window.location.pathname = "/login.html";
       } else {
-        const data = await res.json();
         div.innerText = data.message || "회원 가입 중 오류가 발생했습니다.";
         div.style.color = "red";
       }

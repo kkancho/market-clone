@@ -1,11 +1,24 @@
-from fastapi import FastAPI, UploadFile, Form, Response
+from fastapi import FastAPI,UploadFile,Form,Response,Depends
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 from fastapi_login import LoginManager
 from fastapi_login.exceptions import InvalidCredentialsException
 from typing import Annotated
+from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
+import hashlib
+
+# Initialize FastAPI
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 필요한 도메인만 허용하는 것이 더 안전
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Database connection
 con = sqlite3.connect("db.db", check_same_thread=False)
@@ -47,37 +60,55 @@ SECRET = "super-coding"
 manager = LoginManager(SECRET, '/login')
 
 @manager.user_loader()
-def query_user(id):
-    con.row_factory =sqlite3.Row
+def query_user(user_id: str):
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
-    user = cur.execute(f"""
-                       SELECT * from users WHERE id='{id}'
-                       """).fetchone()
+    user = cur.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    print(f"Loaded user from token: {user}")
+    # WHERE_STATEMENTS = f'id="{data}"'
+    # if type(data) == dict:
+    #     WHERE_STATEMENTS = f'''name="{data["name"]}"'''
+    # con.row_factory = sqlite3.Row
+    # cur = con.cursor()
+    # user = cur.execute(f"""
+    #                    SELECT * from users WHERE {WHERE_STATEMENTS}
+    #                    """).fetchone()
+    # if not user:
+    #     return None
     return user
 
 @app.post('/login')
 def login(id: Annotated[str, Form()],
-            password: Annotated[str, Form()]):
+          password: Annotated[str, Form()]):
     user = query_user(id)
-    print(user['password'])
     if not user:
         raise InvalidCredentialsException
     elif password != user['password']:
         raise InvalidCredentialsException
+        
+    # hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    access_token = manager.create_access_token(data={'sub': user['id']})
+    print(f"Generated JWT Token: {access_token}")
     
-    access_token = manager.create_access_token(data={
-        'id':user['id'],
-        'name':user['name'],
-        'email':user['email']
-    })
+    # print(f"Provided password (hashed): {password}")
+    # print(f"Stored password: {user['password']}")
+
+    # access_token = manager.create_access_token(data={
+    #     'sub': {
+    #         'id': user['id'],
+    #         'name': user['name'],
+    #         'email': user['email']
+    #     }
+    # })
     
-    return {'access_token':access_token}
+    return {'access_token': access_token}
+
 
 # API for user signup
 @app.post("/signup")
 async def signup(
     id: Annotated[str, Form()],
-    password: Annotated[str, Form()],
+    password: Annotated[str, Form()],  # 이미 클라이언트에서 해싱된 비밀번호
     name: Annotated[str, Form()],
     email: Annotated[str, Form()],
 ):
@@ -92,21 +123,29 @@ async def signup(
                 status_code=400,
             )
 
+        # 비밀번호 저장 전에 디버깅
+        print(f"Signup password (hashed): {password}")
+
         # Insert new user
         cur.execute(
             """
             INSERT INTO users (id, name, email, password)
             VALUES (?, ?, ?, ?)
         """,
-            (id, name, email, password),
+            (id, name, email, password),  # 클라이언트가 해싱한 비밀번호 저장
         )
         con.commit()
-        return JSONResponse(content="200", status_code=200)
+        return JSONResponse(
+            content={"status": "success", "message": "회원 가입에 성공했습니다."}, 
+            status_code=201
+        )
     except Exception as e:
         print(f"Signup Error: {str(e)}")
         return JSONResponse(
-            content={"status": "error", "message": str(e)}, status_code=500
+            content={"status": "error", "message": "회원 가입 중 문제가 발생했습니다."}, 
+            status_code=500,
         )
+
 
 def get_db_connection():
     return sqlite3.connect("db.db", check_same_thread=False)
@@ -145,8 +184,9 @@ async def create_item(
 
 # API to retrieve all items
 @app.get("/items")
-async def get_items():
+async def get_items(user=Depends(manager)):
     try:
+        print(f"Authenticated user: {user}")
         con = get_db_connection()
         con.row_factory = sqlite3.Row
         cur = con.cursor()
@@ -159,9 +199,9 @@ async def get_items():
 
         return JSONResponse(content=jsonable_encoder(data))
     except Exception as e:
-        print(f"데이터 조회 에러: {str(e)}")
+        print(f"Error during authentication: {str(e)}")
         return JSONResponse(
-            content={"status": "error", "message": str(e)}, status_code=500
+            content={"status": "error", "message": "Authentication failed"}, status_code=401
         )
 
 # API to retrieve an image by item ID
