@@ -2,6 +2,8 @@ from fastapi import FastAPI, UploadFile, Form, Response
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.staticfiles import StaticFiles
+from fastapi_login import LoginManager
+from fastapi_login.exceptions import InvalidCredentialsException
 from typing import Annotated
 import sqlite3
 
@@ -40,6 +42,71 @@ con.commit()
 
 # Initialize FastAPI
 app = FastAPI()
+
+SECRET = "super-coding"
+manager = LoginManager(SECRET, '/login')
+
+@manager.user_loader()
+def query_user(id):
+    con.row_factory =sqlite3.Row
+    cur = con.cursor()
+    user = cur.execute(f"""
+                       SELECT * from users WHERE id='{id}'
+                       """).fetchone()
+    return user
+
+@app.post('/login')
+def login(id: Annotated[str, Form()],
+            password: Annotated[str, Form()]):
+    user = query_user(id)
+    print(user['password'])
+    if not user:
+        raise InvalidCredentialsException
+    elif password != user['password']:
+        raise InvalidCredentialsException
+    
+    access_token = manager.create_access_token(data={
+        'id':user['id'],
+        'name':user['name'],
+        'email':user['email']
+    })
+    
+    return {'access_token':access_token}
+
+# API for user signup
+@app.post("/signup")
+async def signup(
+    id: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    name: Annotated[str, Form()],
+    email: Annotated[str, Form()],
+):
+    try:
+        # Check for duplicate user ID
+        cur.execute("SELECT 1 FROM users WHERE id = ?", (id,))
+        existing_user = cur.fetchone()
+
+        if existing_user:
+            return JSONResponse(
+                content={"status": "error", "message": "이미 존재하는 아이디입니다."},
+                status_code=400,
+            )
+
+        # Insert new user
+        cur.execute(
+            """
+            INSERT INTO users (id, name, email, password)
+            VALUES (?, ?, ?, ?)
+        """,
+            (id, name, email, password),
+        )
+        con.commit()
+        return JSONResponse(content="200", status_code=200)
+    except Exception as e:
+        print(f"Signup Error: {str(e)}")
+        return JSONResponse(
+            content={"status": "error", "message": str(e)}, status_code=500
+        )
 
 def get_db_connection():
     return sqlite3.connect("db.db", check_same_thread=False)
@@ -115,40 +182,6 @@ async def get_image(item_id: int):
         return Response(content=bytes.fromhex(image_bytes[0]), media_type="image/*")
     return JSONResponse(content={"error": "Image not found"}, status_code=404)
 
-# API for user signup
-@app.post("/signup")
-async def signup(
-    id: Annotated[str, Form()],
-    password: Annotated[str, Form()],
-    name: Annotated[str, Form()],
-    email: Annotated[str, Form()],
-):
-    try:
-        # Check for duplicate user ID
-        cur.execute("SELECT 1 FROM users WHERE id = ?", (id,))
-        existing_user = cur.fetchone()
-
-        if existing_user:
-            return JSONResponse(
-                content={"status": "error", "message": "이미 존재하는 아이디입니다."},
-                status_code=400,
-            )
-
-        # Insert new user
-        cur.execute(
-            """
-            INSERT INTO users (id, name, email, password)
-            VALUES (?, ?, ?, ?)
-        """,
-            (id, name, email, password),
-        )
-        con.commit()
-        return JSONResponse(content="200", status_code=200)
-    except Exception as e:
-        print(f"Signup Error: {str(e)}")
-        return JSONResponse(
-            content={"status": "error", "message": str(e)}, status_code=500
-        )
 
 # Mount static files for frontend
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
