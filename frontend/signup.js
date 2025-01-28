@@ -11,11 +11,6 @@ const checkPassword = () => {
 const handleSubmit = async (event) => {
   event.preventDefault();
   const formData = new FormData(form);
-  const password = formData.get("password");
-
-  // 비밀번호를 해시로 변환
-  const hashedPassword = sha256(password);
-  formData.set("password", hashedPassword);
 
   const div = document.querySelector("#info");
 
@@ -26,7 +21,7 @@ const handleSubmit = async (event) => {
         body: formData,
       });
 
-      const data = await res.json(); // JSON 응답 처리
+      const data = await res.json();
 
       if (res.ok) {
         alert(data.message || "회원 가입에 성공했습니다.");

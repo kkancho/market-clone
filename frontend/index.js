@@ -1,4 +1,3 @@
-// 시간을 계산하는 함수
 const calcTime = (timestamp) => {
   const curTime = new Date().getTime() - 9 * 60 * 60 * 1000;
   const time = new Date(curTime - timestamp);
@@ -12,9 +11,13 @@ const calcTime = (timestamp) => {
   else return "방금 전";
 };
 
-// 데이터를 렌더링하는 함수
 const renderData = (data) => {
   const main = document.querySelector("main");
+
+  if (data.length === 0) {
+    main.innerHTML = "<p>표시할 데이터가 없습니다.</p>";
+    return;
+  }
 
   data.reverse().forEach(async (obj) => {
     const div = document.createElement("div");
@@ -24,10 +27,18 @@ const renderData = (data) => {
     imgDiv.className = "items-list__img";
 
     const img = document.createElement("img");
-    const res = await fetch(`/images/${obj.id}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    img.src = url;
+    try {
+      const res = await fetch(`/images/${obj.id}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        img.src = url;
+      } else {
+        img.src = "assets/no-image.png"; // Fallback image
+      }
+    } catch {
+      img.src = "assets/no-image.png"; // Fallback image
+    }
 
     const InfoDiv = document.createElement("div");
     InfoDiv.className = "items-list__info";
@@ -42,7 +53,7 @@ const renderData = (data) => {
 
     const InfoPriceDiv = document.createElement("div");
     InfoPriceDiv.className = "items-list__info-price";
-    InfoPriceDiv.innerText = obj.price;
+    InfoPriceDiv.innerText = `${obj.price}원`;
 
     imgDiv.appendChild(img);
     InfoDiv.appendChild(InfoTitleDiv);
@@ -54,7 +65,6 @@ const renderData = (data) => {
   });
 };
 
-// 상품 목록 가져오기
 const fetchList = async () => {
   const accessToken = window.localStorage.getItem("token");
   if (!accessToken) {
@@ -71,19 +81,17 @@ const fetchList = async () => {
       },
     });
 
-    if (res.status === 401) {
+    if (!res.ok) {
       alert("로그인이 필요합니다.");
       window.location.pathname = "/login.html";
       return;
     }
 
     const data = await res.json();
-    console.log("Fetched items:", data);
-    // renderData(data);
+    renderData(data);
   } catch (error) {
     console.error("API 요청 중 오류 발생:", error);
   }
 };
 
-// 페이지 로드 시 실행
 fetchList();
