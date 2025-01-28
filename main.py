@@ -1,13 +1,15 @@
-from fastapi import FastAPI, UploadFile, Form, Response, Depends
+from fastapi import FastAPI, UploadFile, Form, Response, Depends, Cookie
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 from fastapi_login import LoginManager
 from fastapi_login.exceptions import InvalidCredentialsException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Annotated
+from typing import Annotated, Optional
 import sqlite3
 import hashlib
+import jwt
+import datetime
 
 # Initialize FastAPI
 app = FastAPI()
@@ -54,9 +56,10 @@ cur.execute(
 
 con.commit()
 
-# Secret key for JWT
-SECRET = "super-coding"
-manager = LoginManager(SECRET, '/login')
+# Secret keys for JWT
+SECRET_ACCESS = "super-coding-access"
+SECRET_REFRESH = "super-coding-refresh"
+manager = LoginManager(SECRET_ACCESS, '/login')
 
 # Helper function to hash passwords using SHA-256
 def hash_password(password: str) -> str:
@@ -69,13 +72,31 @@ def query_user(user_id: str):
     cur = con.cursor()
     user = cur.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
     if user:
-        print(f"Loaded user from token: {dict(user)}")
         return dict(user)  # Convert sqlite3.Row to dictionary
     return None
 
+# Function to create Refresh Token
+def create_refresh_token(user_id: str):
+    expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    payload = {
+        "sub": user_id,
+        "exp": expiration,
+    }
+    return jwt.encode(payload, SECRET_REFRESH, algorithm="HS256")
+
+# Function to verify Refresh Token
+def verify_refresh_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_REFRESH, algorithms=["HS256"])
+        return payload["sub"]
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
 # Login API
 @app.post('/login')
-def login(id: Annotated[str, Form()], password: Annotated[str, Form()]):
+def login(id: Annotated[str, Form()], password: Annotated[str, Form()], response: Response):
     user = query_user(id)
     if not user:
         raise InvalidCredentialsException
@@ -84,9 +105,14 @@ def login(id: Annotated[str, Form()], password: Annotated[str, Form()]):
     if hashed_password != user['password']:
         raise InvalidCredentialsException
 
-    # Generate JWT token
-    access_token = manager.create_access_token(data={'sub': id})  # Store only user ID in token
-    print(f"Generated JWT Token: {access_token}")
+    # Generate Access and Refresh Tokens
+    access_token = manager.create_access_token(data={'sub': id})
+    refresh_token = create_refresh_token(id)
+
+    # Set Refresh Token as HttpOnly cookie
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
+    print(f"Generated JWT Tokens: Access Token={access_token}, Refresh Token={refresh_token}")
+
     return {'access_token': access_token}
 
 # Signup API
@@ -131,6 +157,28 @@ async def signup(
             content={"status": "error", "message": "회원 가입 중 문제가 발생했습니다."}, 
             status_code=500,
         )
+
+# Refresh Token API
+@app.post('/refresh')
+def refresh_token(response: Response, refresh_token: Optional[str] = Cookie(None)):
+    if not refresh_token:
+        return JSONResponse(
+            content={"status": "error", "message": "Refresh token이 없습니다."}, 
+            status_code=401
+        )
+
+    user_id = verify_refresh_token(refresh_token)
+    if not user_id:
+        return JSONResponse(
+            content={"status": "error", "message": "Refresh token이 유효하지 않습니다."}, 
+            status_code=401
+        )
+
+    # Generate a new Access Token
+    access_token = manager.create_access_token(data={'sub': user_id})
+    print(f"New Access Token generated: {access_token}")
+
+    return {'access_token': access_token}
 
 # Helper function to get a new database connection
 def get_db_connection():
@@ -185,8 +233,6 @@ async def get_items(user=Depends(manager)):
 
         rows = cur.execute("SELECT * FROM items;").fetchall()
         data = [dict(row) for row in rows]
-
-        print("Fetched items from database:", data)  # Debugging
 
         cur.close()
         con.close()
