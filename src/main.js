@@ -1,0 +1,7 @@
+import App from "./App.svelte";
+
+const app = new App({
+  target: document.getElementById("app"), // index.html에 있는 #app 요소
+});
+
+export default app;
