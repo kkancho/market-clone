@@ -1,11 +1,11 @@
-/* 헤더바 */
+/* 헤더바
 header {
   padding: 10px;
   display: flex;
   width: 98vw;
   justify-content: space-between;
   align-items: center;
-}
+} */
 
 /* 헤더바 */
 header {
@@ -47,11 +47,11 @@ header {
   padding-left: 10px;
 }
 
-.menu-bar__location img {
+.menu-bar__location-img {
   width: 15px;
 }
 
-.menu-bar_location-icon {
+.menu-bar__location-icon {
   padding-top: 5px;
   display: flex;
   justify-content: center;

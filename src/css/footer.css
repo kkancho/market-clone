@@ -24,7 +24,7 @@ footer {
   cursor: pointer;
 }
 
-.footer-icons_desc {
+.footer-icons__desc {
   margin-top: 5px;
   font-weight: bold;
   transform: scale(1.5);
@@ -45,10 +45,10 @@ footer {
   }
 }
 
-.footer-icons_img {
+.footer-icons__img {
   width: 30px;
 }
 
-.footer-icons:hover .footer-icons_img {
+.footer-icons:hover .footer-icons__img {
   animation: 2s icons-둥-둥;
 }
